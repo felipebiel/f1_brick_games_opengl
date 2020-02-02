@@ -1,0 +1,770 @@
+#include <stdlib.h>
+#include <math.h>
+#include <GL/glut.h>
+#define PI 3.1415926535898
+
+// Variáveis que guardam a translação que será aplicada
+GLfloat Tx;
+GLfloat Ty;
+GLint i;
+GLfloat angle;
+
+GLfloat cosseno;
+GLfloat seno;
+
+//variaveis para a segunda animação mais lenta da plateia e arbustos
+GLfloat Tx2;
+GLfloat Ty2;
+GLfloat Ty3;
+GLfloat Ty4;
+
+GLfloat minX2, maxX2;
+GLfloat minY2, maxY2;
+
+GLfloat yStep2;
+GLfloat yStep3;
+
+//VARIAVEIS DE MOVIMENTO DO CARRO
+
+GLfloat deslocamentoCarrinho;
+GLfloat limiteEsquerda;
+GLfloat limiteDireita;
+
+//variavel de colisao
+int colisao;
+
+//variavel de gameover
+int gameover;
+//variavel para o texto
+int pontos;
+int multiplicador;
+
+int geraCarrinho;
+
+// Variáveis que guardam os valores mínimos de x e y
+
+GLfloat minX, maxX;
+GLfloat minY, maxY;
+
+// Variáveis que guardam o tamanho do incremento nas
+// direções x e y (número de pixels para se mover a
+// cada intervalo de tempo)
+GLfloat xStep;
+GLfloat yStep;
+
+// Variáveis que guardam a largura e altura da janela
+GLfloat windowXmin, windowXmax;
+GLfloat windowYmin, windowYmax;
+//cores aleatorias
+float rAleatorio;
+float gAleatorio;
+float bAleatorio;
+
+//velocidade do carrinho
+
+int velocidade;
+
+//declarando a função do carrinho
+
+void FaixaChegada();
+
+void Carrinho(float r, float g, float b);
+
+void Arvore();
+
+void Inicializa (void);
+
+void DesenhaTexto(char *string, float r, float g, float b);
+
+
+// Função callback de redesenho da janela de visualização
+void Desenha(void)
+{
+// Muda para o sistema de coordenadas do modelo
+glMatrixMode(GL_MODELVIEW);
+// Inicializa a matriz de transformação corrente
+glLoadIdentity();
+
+// Limpa a janela de visualização com a cor  
+// de fundo definida previamente
+glClear(GL_COLOR_BUFFER_BIT);
+
+
+//linhas amarelas
+glBegin(GL_QUADS);
+    glColor3f (1.0, 1.0, 0.0);
+    glVertex3f(20,windowYmax,0);
+    glVertex3f(20,windowYmin, 0);
+    glVertex3f(22,windowYmin,0);
+    glVertex3f(22,windowYmax,0);
+   
+    glVertex3f(20,windowYmax,0);
+    glVertex3f(20,windowYmin, 0);
+    glVertex3f(-22,windowYmin,0);
+    glVertex3f(-22,windowYmax,0);
+glEnd();
+   
+// Pista cinza
+glBegin(GL_QUADS);
+    glColor3f (0.3, 0.3, 0.3);
+    glVertex3f(20,windowYmax,0);
+    glVertex3f(20,windowYmin, 0);
+    glVertex3f(-20,windowYmin,0);
+    glVertex3f(-20,windowYmax,0);
+glEnd();
+
+
+//LINHA CHEGADA
+glPushMatrix();
+     glTranslatef(0, Ty3+20, 0.0f);
+     FaixaChegada();
+glPopMatrix();
+
+//carrao=chamado pela função que cria o carro
+//Carro principal que tem o movimento esquerda direita
+glPushMatrix();
+glTranslatef(deslocamentoCarrinho, -30.0f, 0.0f);
+     Carrinho(1.0, 1.0, 0.0);
+glPopMatrix();
+
+//linha com animação
+glPushMatrix();
+  glTranslatef(Tx, Ty, 0.0f);
+
+  glScalef(1.0f, 1.0f, 0.0f);
+
+  GLfloat circle_points = 100;
+  //PONTO DA LINHA DO MEIO
+  /*glColor3f (1.0f, 1.0f, 1.0f);
+  glLineWidth(6.0);
+  glBegin(GL_LINES);
+      glVertex3f(0,0,0);
+      glVertex3f(0,20,0);
+  glEnd();*/
+  const float distancia = 10.0f;
+
+  glPointSize(20.0);
+  int i;
+  float right=21, pos = -200 + distancia;
+  float left= -21;
+
+
+  for (i = 1; i <= 100; i++){
+
+      glColor3f (1.0, 0.0, 0.0);
+      glBegin(GL_POINTS);
+       
+          glVertex3f(right,pos, 0);
+          glVertex3f(left,pos, 0);
+     
+      glEnd();
+     
+      pos += distancia;
+    }
+glPopMatrix();
+
+//ARVORES
+glPushMatrix();
+//ARBUSTO 1
+    glTranslatef(-60 ,Ty2, 0.0f);
+  Arvore(1.0f,1.0f);
+glPopMatrix();
+ 
+glPushMatrix();
+//ARBUSTO 2
+    glTranslatef(-70 ,Ty2+20, 0.0f);
+  Arvore(2.0f,2.0f);
+glPopMatrix();
+ 
+//CARRINHOS DO OPONENTE =====================================
+glPushMatrix();
+if(geraCarrinho == 0){
+     glTranslatef(-13, Ty4, 0.0f);
+     Carrinho(rAleatorio, gAleatorio, bAleatorio);
+}else{
+     glTranslatef(13, Ty4, 0.0f);
+     Carrinho(rAleatorio, gAleatorio, bAleatorio);
+}
+glPopMatrix();
+   
+//mensagem de gamer over
+if(gameover == 1){
+glPushMatrix();
+  glBegin(GL_QUADS);
+      glColor3f (1.0, 0.0, 0.0);
+      glVertex3f(-30,15,0);
+      glVertex3f(30,15, 0);
+      glVertex3f(30, -10,0);
+      glVertex3f(-30,-10,0);
+  glEnd();
+glPopMatrix();
+
+glPushMatrix();
+   glTranslatef(-25.0f, 0.0f, 0.0f);
+   glScalef(0.07f, 0.07f, 0.0);
+   DesenhaTexto("GAMEOVER", 1.0,1.0,1.0);
+glPopMatrix();
+}
+
+//placar de pontos
+
+glPushMatrix();
+   glTranslatef(20.0f, 20.0f, 0.0f);
+   glBegin(GL_QUADS);
+      glColor3f (0.0, 0.0, 0.0);
+      glVertex3f(30, -25, 0);
+      glVertex3f(30,-35, 0);
+      glVertex3f(10, -35,0);
+      glVertex3f(10,-25,0);
+  glEnd();
+glPopMatrix();
+
+glPushMatrix();
+   
+   glTranslatef(30.0f, -3.0f, 0.0f);
+   glScalef(0.05f, 0.05f, 0.0);
+   DesenhaTexto("Pontos", 0.0,0.0,0.0);
+glPopMatrix();
+
+glPushMatrix();
+   
+   int  contadorPontos = pontos;
+   char contadorTela[8];
+   itoa(contadorPontos, contadorTela, 10);  
+   glTranslatef(32.0f, -12.0f, 0.0f);
+   glScalef(0.04f, 0.04f, 0.0);
+   DesenhaTexto(contadorTela, 1.0,1.0,1.0);
+glPopMatrix();
+
+
+
+// Executa os comandos OpenGL
+glutSwapBuffers();
+}
+
+//funcao que escreve texto na tela
+void DesenhaTexto(char *string, float r, float g, float b)
+{  
+        glColor3f(r, g, b);
+        // Posição no universo onde o texto será colocado          
+
+        // Exibe caracter a caracter
+        while(*string)
+             glutStrokeCharacter(GLUT_STROKE_ROMAN,*string++);
+}
+
+// Função callback chamada quando o tamanho da janela é alterado
+void AlteraTamanhoJanela(GLsizei w, GLsizei h)
+{
+GLsizei largura, altura;
+
+// Evita a divisao por zero
+if(h == 0) h = 1;
+
+// Atualiza as variáveis
+largura = w;
+altura = h;
+
+// Especifica as dimensões da Viewport
+glViewport(0, 0, largura, altura);
+
+// Inicializa o sistema de coordenadas de projeção
+glMatrixMode(GL_PROJECTION);
+glLoadIdentity();
+
+// Estabelece a janela de seleção (esquerda, direita, inferior,
+// superior) mantendo a proporção com a janela de visualização
+if (largura <= altura)
+{
+gluOrtho2D (-40.0f, 40.0f, -40.0f*altura/largura, 40.0f*altura/largura);
+windowXmin = -40.0f;
+windowXmax =  40.0f;
+windowYmin = -40.0f*altura/largura;
+windowYmax = 40.0f*altura/largura;
+}
+else
+{
+gluOrtho2D (-40.0f*largura/altura, 40.0f*largura/altura, -40.0f, 40.0f);
+windowXmin = -40.0f*largura/altura;
+windowXmax =  40.0f*largura/altura;
+windowYmin = -40.0f;
+windowYmax =  40.0f;
+}
+}
+
+// Função callback chamada pela GLUT a cada intervalo de tempo
+void AnimaPista(int value)
+{
+// Muda a direção quando chega na borda superior ou inferior
+if( (Ty+maxY) > windowYmax || (Ty+minY) < windowYmin ){
+        yStep = -1.0f;
+        Ty = 39.0f;      
+   }
+   
+    if(colisao != 1){
+    // Move o objeto
+    Ty += yStep*4;
+    // Redesenha o objeto em outra posição
+//    glutPostRedisplay();
+    glutTimerFunc(20,AnimaPista, 1);
+    }
+    glutPostRedisplay();
+}
+
+// Função callback chamada pela GLUT a cada intervalo de tempo
+void AnimaArbustos(int value)
+{    
+     //se a varievel que controla a posição do Y for menor que a posição minima de Y ele reinicia a posição odo Y
+     
+     if(Ty2 <= -100){
+        Ty2 = windowYmax;
+      }
+     if(colisao != 1){  
+    // Move o objeto
+    Ty2 -= 0.5*2;
+    // Redesenha o objeto em outra posição
+   
+    //printf("%f\n", Ty2);
+//    glutPostRedisplay();
+    glutTimerFunc(50,AnimaArbustos, 1);
+    }
+    glutPostRedisplay();
+   
+}
+
+
+//anima o carro a esquerda
+void AnimaCarroEsquerda(int value)
+{    
+     /*animação que desloca o carrinho ao digitar pra esquerda
+                se o limite de onde o carrinho deve estar chegar ele para de executar a funcao de animação
+     */
+     
+     if(deslocamentoCarrinho > limiteEsquerda && colisao ==0){
+                             
+       deslocamentoCarrinho-=2;
+     
+       if(Ty4 <=-15 && geraCarrinho == 0 && deslocamentoCarrinho <=-5){
+           colisao =1;
+           gameover = 1;
+       }else{    
+              // Redesenha o objeto em outra posição
+               glutPostRedisplay();
+               glutTimerFunc(20,AnimaCarroEsquerda, 1);
+        }
+                   
+     }
+
+}
+
+//anima o carro a direita
+void AnimaCarroDireita(int value)
+{    
+     /*animação que desloca o carrinho ao digitar pra esquerda
+                se o limite de onde o carrinho deve estar chegar ele para de executar a funcao de animação
+     */
+     if(deslocamentoCarrinho < limiteDireita && colisao ==0){
+         deslocamentoCarrinho+=2;
+         if(Ty4 <=-15 && geraCarrinho == 1 && deslocamentoCarrinho >=5){
+           colisao =1;
+           gameover = 1;
+       }else{  
+         glutPostRedisplay();
+         glutTimerFunc(20,AnimaCarroDireita, 1);
+       }
+     }
+
+}
+
+void AnimaFaixa(int value)
+{
+
+    //se a varievel que controla a posição do Y for menor que a posição minima de Y ele reinicia a posição odo Y
+     
+      if(Ty3 <= -1000){
+        Ty3 = 30.0f;
+      }
+     
+      if(colisao != 1){  
+      // Move o objeto
+      Ty3 -= 0.5*2;
+      // Redesenha o objeto em outra posição
+   
+     
+      glutTimerFunc(20,AnimaFaixa, 1);
+    }
+     glutPostRedisplay();
+
+}
+/*COLISOES DINAMICAS =========================================*/
+void CarrinhoDinamico(int value)
+{                        
+   
+    //numero aleatorio entre 0 e 9
+    int x = rand()%10;
+   
+    if(Ty4 > windowYmin){
+    //se não chegar no limite contunua descendo o carrinho
+    Ty4 -=1;
+    //printf("%f\n", Ty4);
+    pontos += 1 * multiplicador;
+   
+    }else{
+          //se chegar no limite, gera um novo carrinho em uma posição aleatória com uma cor aleatoria
+          if(x%2 == 0){
+                 //numero par carrinho a esquerda
+                 geraCarrinho = 0;
+          }else{
+                //numero impar carrinho a direita
+                geraCarrinho = 1;
+          }
+          //gera uma nova cor para cada carrinho
+          rAleatorio =    (rand()%10)/10.0f;
+          gAleatorio =    (rand()%10)/10.0f;
+          bAleatorio =    (rand()%10)/10.0f;
+         
+          Ty4 = windowYmax;
+    }
+   
+    //se chegar no limite do carrinho e ele gerou um carro a esquerda
+    //verifica se o carrinho do jogador esta a esquerda    
+   
+    if(Ty4 == -15.0f && deslocamentoCarrinho == -13 && geraCarrinho ==0 && colisao == 0){
+           //se sim colusao a esquerda
+           printf("COLISAO A ESQUERDA");
+           colisao =1;
+           gameover = 1;
+    }else if(Ty4 == -15.0f && deslocamentoCarrinho == 13 && geraCarrinho ==1 && colisao == 0){
+          //mesma logica para a direita
+           printf("COLISAO A direita");          
+           colisao =1;
+           gameover = 1;
+    }else{
+         if(colisao != 1){  
+                    glutTimerFunc(velocidade,CarrinhoDinamico, 1);
+         }
+               glutPostRedisplay();
+    }
+
+
+}
+
+// Função callback chamada para gerenciar eventos de teclas especiais(F1,PgDn,...)
+void TeclasEspeciais(int key, int x, int y)
+{
+switch(key)
+{
+    case GLUT_KEY_LEFT: // desloca a window para o lado esquerdo
+                        if(deslocamentoCarrinho == 13){
+                          glutTimerFunc(50, AnimaCarroEsquerda, 1);
+                        }
+    break;
+    case GLUT_KEY_RIGHT: // desloca a window para o lado direito
+                        if(deslocamentoCarrinho == -13){
+                          glutTimerFunc(50, AnimaCarroDireita, 1);
+                        }
+    break;
+   
+    case GLUT_KEY_UP:
+        //aumenta velocidade do carrinho
+        if(velocidade > 7){
+          if(velocidade <20){
+                multiplicador +=1;
+                velocidade -=2;
+          }else{
+                multiplicador +=1;
+                velocidade -=10;
+          }
+        }
+    break;
+   
+    case GLUT_KEY_DOWN:
+        //aumenta velocidade do carrinho
+
+        if(velocidade != 200){
+          velocidade +=10;
+          if(multiplicador > 1){          
+             multiplicador -=1;
+          }
+        }
+    break;
+}
+glutPostRedisplay();
+}
+
+// Função callback chamada para gerenciar eventos de teclas
+void Teclado (unsigned char key, int x, int y)
+{
+  if (key == 27){
+     exit(0);
+  }
+ 
+  if(key == 13){
+         if(colisao == 1){
+         //reinicia o jogo        
+        windowYmax = 40.0f;
+        windowYmin = -40.0f;
+        yStep = windowYmax;
+        Ty = 0.0f;
+        minY = -3.0f;
+        maxY =  3.0f;
+       
+        yStep2 = windowYmax;
+        yStep3 = windowYmax+10;
+        Ty2 = Ty3 = 30.0f;
+        minY2 = -3.0f;
+        maxY2 =  3.0f;
+        Ty4 = windowYmax;
+       
+        //inicialização das variaveis de movimento
+        deslocamentoCarrinho = -13.0f;
+        limiteDireita = 13.0f;
+        limiteEsquerda = -13.0f;
+       
+        colisao = 0;
+        gameover =0;
+        geraCarrinho = 0;
+       
+        rAleatorio =    (rand()%10)/10.0f;
+        gAleatorio =    (rand()%10)/10.0f;
+        bAleatorio =    (rand()%10)/10.0f;
+       
+        velocidade = 200;
+        multiplicador = 1;
+        pontos = 0;
+
+        glutTimerFunc(50, AnimaPista, 1);
+       
+        glutTimerFunc(50, CarrinhoDinamico, 1);
+       
+        glutTimerFunc(50, AnimaArbustos, 1);
+       
+        glutTimerFunc(50, AnimaFaixa, 1);
+        }
+  }
+}
+
+// Função responsável por inicializar parâmetros e variáveis
+void Inicializa (void)
+{  
+// Define a cor de fundo da janela de visualização como branca
+glClearColor(0.28f, 1.0f, 0.28f, 0.0f);
+
+// Inicialização das variáveis globais, com o valor -40/40, a linha só desce
+windowYmax = 40.0f;
+windowYmin = -40.0f;
+yStep = windowYmax;
+Ty = 0.0f;
+minY = -3.0f;
+maxY =  3.0f;
+
+yStep2 = windowYmax;
+yStep3 = windowYmax+10;
+Ty2 = Ty3 = 30.0f;
+minY2 = -3.0f;
+maxY2 =  3.0f;
+Ty4 = windowYmax;
+
+//inicialização das variaveis de movimento
+deslocamentoCarrinho = -13.0f;
+limiteDireita = 13.0f;
+limiteEsquerda = -13.0f;
+
+colisao = 0;
+gameover =0;
+geraCarrinho = 0;
+
+rAleatorio =    (rand()%10)/10.0f;
+gAleatorio =    (rand()%10)/10.0f;
+bAleatorio =    (rand()%10)/10.0f;
+
+velocidade = 200;
+multiplicador = 1;
+
+}
+// Programa Principal
+int main(void)
+{
+    // Define do modo de operação da GLUT
+glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+
+// Especifica a posição inicial da janela GLUT
+glutInitWindowPosition(100,100);
+
+// Especifica o tamanho inicial em pixels da janela GLUT
+glutInitWindowSize(900,900);
+
+// Cria a janela passando como argumento o título da mesma
+glutCreateWindow("Jogo do carrinho");
+
+// Registra a função callback de redesenho da janela de visualização
+glutDisplayFunc(Desenha);
+
+// Registra a função callback de redimensionamento da janela de visualização
+glutReshapeFunc(AlteraTamanhoJanela);
+
+// Registra a função callback para tratamento das teclas especiais
+glutSpecialFunc(TeclasEspeciais);
+
+// Registra a função callback para tratamento das teclas ASCII
+glutKeyboardFunc (Teclado);
+
+// Registra a função callback que será chamada a cada intervalo de tempo
+glutTimerFunc(50, AnimaPista, 1);
+
+glutTimerFunc(50, CarrinhoDinamico, 1);
+
+glutTimerFunc(50, AnimaArbustos, 1);
+
+glutTimerFunc(50, AnimaFaixa, 1);
+
+// Chama a função responsável por fazer as inicializações
+Inicializa();
+
+// Inicia o processamento e aguarda interações do usuário
+glutMainLoop();
+
+return 0;
+}
+
+
+//OBJETOS EM FUNCOES
+//ARVORE
+void Arvore(){
+         
+     glPointSize(30.0);
+     glColor3f (0.2, 0.4, 0.2);
+     glBegin(GL_POINTS);
+          //folhas  
+          glVertex3f(25,25, 0);
+          glVertex3f(26,25, 0);
+          glVertex3f(26,26.5, 0);
+          glVertex3f(26.5,26, 0);
+          glVertex3f(25.5,26.2, 0);
+          glVertex3f(27,25, 0);
+
+      glEnd();
+     
+     glPointSize(10.0);
+     glColor3f (0.4, 0.6, 0.4);
+     glBegin(GL_POINTS);
+          //folhas CLARAS
+          glVertex3f(25,25, 0);
+          glVertex3f(26,25, 0);
+          glVertex3f(25.6,26, 0);
+     glEnd();
+}
+
+//funcao que cria o carrinho. Parametros cores base do carro
+void Carrinho(float r, float g, float b){
+         
+glPushMatrix();
+glScalef(10.0f, 10.0f, 1.0f);
+        glBegin(GL_QUADS);
+         glColor3f (r, g, b);
+             //entrada de ar        
+          glVertex3f(-0.4,-0.5,0);
+          glVertex3f(0.4,-0.5,0);
+          glColor3f (1.0, 1.0, 1.0);
+          glVertex3f(0.3,0.0,0);
+          glVertex3f(-0.3,0.0,0);
+         //meio do carro verde
+         glColor3f (0.0, 1.0, 0.0);
+          glVertex3f(-0.1,-0.9,0);
+          glVertex3f(0.1,-0.9,0);
+          glVertex3f(0.1,0.5,0);
+          glVertex3f(-0.1,0.5,0);
+         
+          //roda dianteira amarelas
+          glColor3f (0.0, 0.0, 0.0);
+          glVertex3f(-0.4,0.2,0);
+          glVertex3f(0.4,0.2,0);
+          glVertex3f(0.4,0.4,0);
+          glVertex3f(-0.4,0.4,0);
+          //roda trazeira amarela
+          glColor3f (0.0, 0.0, 0.0);
+          glVertex3f(-0.5,-0.9,0);
+          glVertex3f(0.5,-0.9,0);
+          glVertex3f(0.5,-0.6,0);
+          glVertex3f(-0.5,-0.6,0);
+          // copt azul
+          glColor3f (r, g, b);
+          glVertex3f(-0.1,-0.5,0);
+          glVertex3f(0.1,-0.5,0);
+          glVertex3f(0.0,-0.2,0);
+          glVertex3f(-0.0,-0.2,0);
+          //aerofolio dianteiro
+           glColor3f (0.0, 0.0, 1.0);
+          glVertex3f(-0.1,0.6,0);
+          glVertex3f(0.1,0.6,0);
+          glColor3f (1.0, 1.0, 1.0);
+          glVertex3f(0.4,0.5,0);
+          glVertex3f(-0.4,0.5,0);
+          //aerofolio trazeiro
+          glColor3f (1.0, 1.0, 1.0);
+          glVertex3f(-0.5,-0.8,0);
+          glVertex3f(0.5,-0.8,0);
+          glColor3f (0.0, 0.0, 1.0);
+          glVertex3f(0.3,-0.6,0);
+          glVertex3f(-0.3,-0.6,0);
+          //pontas das rodas dianteira
+          glColor3f (r, g, b);
+          glVertex3f(-0.3,0.2,0);
+          glVertex3f(0.3,0.2,0);
+          glVertex3f(0.3,0.4,0);
+          glVertex3f(-0.3,0.4,0);
+          //pontas das rodas trazeiras
+          glColor3f (r, g, b);
+          glVertex3f(-0.3,-0.9,0);
+          glVertex3f(0.3,-0.9,0);
+          glVertex3f(0.3,-0.6,0);
+          glVertex3f(-0.3,-0.6,0);
+          //aerofolio trazeiro
+           glColor3f (1.0, 1.0, 1.0);
+          glVertex3f(-0.5,-0.8,0);
+          glVertex3f(0.5,-0.8,0);
+          glColor3f (0.0, 0.0, 1.0);
+          glVertex3f(0.3,-0.6,0);
+          glVertex3f(-0.3,-0.6,0);
+          glEnd();
+glPopMatrix();
+
+}
+
+void FaixaChegada(){
+     glPushMatrix();
+     glScalef(22.0f, 22.0f, 0.0);
+             glBegin(GL_QUADS);
+     glColor3f (1.0, 1.0, 1.0);
+          glVertex3f(-0.9,0.2,0);
+          glVertex3f(-0.6,0.2,0);
+          glVertex3f(-0.6,0.5,0);
+          glVertex3f(-0.9,0.5,0);
+          glColor3f (0.0, 0.0, 0.0);
+          glVertex3f(-0.6,-0.1,0);
+          glVertex3f(-0.3,-0.1,0);
+          glVertex3f(-0.3,0.2,0);
+          glVertex3f(-0.6,0.2,0);
+          glColor3f (1.0, 1.0, 1.0);
+          glVertex3f(-0.3,0.2,0);
+          glVertex3f(0.0,0.2,0);
+          glVertex3f(0.0,0.5,0);
+          glVertex3f(-0.3,0.5,0);
+          glColor3f (0.0, 0.0, 0.0);
+          glVertex3f(0.0,-0.1,0);
+          glVertex3f(0.3,-0.1,0);
+          glVertex3f(0.3,0.2,0);
+          glVertex3f(0.0,0.2,0);
+          glColor3f (1.0, 1.0, 1.0);
+          glVertex3f(0.3,0.2,0);
+          glVertex3f(0.6,0.2,0);
+          glVertex3f(0.6,0.5,0);
+          glVertex3f(0.3,0.5,0);
+          glColor3f (0.0, 0.0, 0.0);
+          glVertex3f(0.6,-0.1,0);
+          glVertex3f(0.9,-0.1,0);
+          glVertex3f(0.9,0.2,0);
+          glVertex3f(0.6,0.2,0);
+     glEnd ();
+     glPopMatrix();
+}
